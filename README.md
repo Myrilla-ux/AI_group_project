@@ -1,15 +1,14 @@
 # 🌟 AI Group Project
 
 ## 🛠 技术栈  
-- Flask  
-- HTML  
+- Flask + HTML  
 
 ## 📁 项目结构
 ```
 flask_demo/
 ├── app.py
 ├── algorithm.py
-└── templates/        # 用于存放前端页面（如 index.html），不能与 app.py 并列
+└── templates/        # 这里必须新建一个文件夹，用于存放index.html，不能与 app.py 并列
     └── index.html
 ```
 
