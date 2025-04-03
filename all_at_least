@@ -17,7 +17,7 @@ k = 6
 j = 5
 s = 4
 t = 2
-# 从45-54中选7个不重复数字作为实际数值
+# 从1-54中选7个不重复数字作为实际数值
 random_numbers = random.sample(range(1, 55), n)
 print(f"生成的7个数字: {random_numbers}")
 # 生成 s 矩阵
