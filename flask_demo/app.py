@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 from algorithm import run_algorithm
+from db_utils import save_to_db, get_all_results
 import random
 import time
 
@@ -32,22 +33,18 @@ def index():
             value_input = ', '.join(str(x) for x in random_numbers)
 
             # 调用算法并计时
-            # start_time = time.time()
-            compressed_answer = run_algorithm(n=n, k=k, j=j, s=s, random_numbers=random_numbers,t=at_least_s)
-            # #----------------------------换行输出------------------------------------#
-            # result_matrix, _ = compressed_answer
-            # for i, row in enumerate(result_matrix):
-            #     print(f"行{i}: {' '.join(map(str, row))}")
-            # #------------------------------------------------------------------#
-            # total_time = time.time() - start_time
-            # result_matrix, _ = compressed_answer
-            _, total_time = compressed_answer
+            result_matrix, total_time = run_algorithm(
+                n=n, k=k, j=j, s=s, random_numbers=random_numbers, t=at_least_s
+            )
             result = {
                 'answers': [
                     f"Running time: {total_time:.6f} seconds",
-                    f"Sample size: {len(compressed_answer[0])}"
-                ] + [f"results{i}: {' '.join(map(str, row))}" for i, row in enumerate(compressed_answer[0])]
+                    f"Sample size: {len(result_matrix)}"
+                ] + [f"results{i}: {' '.join(map(str, row))}" for i, row in enumerate(result_matrix)]
             }
+            if action == 'store':
+                identifier = f"{m}-{n}-{k}-{j}-{s}-{at_least_s}"
+                save_to_db(identifier, result_matrix)
 
         except Exception as e:
             result = {
@@ -58,6 +55,10 @@ def index():
                            result=result,
                            value_input=value_input,
                            input_n_values=input_n_values)
+@app.route('/results')
+def show_results():
+    records = get_all_results()
+    return render_template('results.html', records=records)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0',port=5050)
