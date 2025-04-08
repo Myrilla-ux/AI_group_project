@@ -1,12 +1,10 @@
 from flask import Flask, render_template, request
+from algorithm import run_algorithm
 import random
 import time
 
 app = Flask(__name__)
 
-def run_algorithm(n, k, j, s, random_numbers):
-    # 模拟计算结果（你自己的算法逻辑替换这里）
-    return [sorted(random.sample(random_numbers, k)) for _ in range(n)]
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -34,15 +32,21 @@ def index():
             value_input = ', '.join(str(x) for x in random_numbers)
 
             # 调用算法并计时
-            start_time = time.time()
-            compressed_answer = run_algorithm(n=n, k=k, j=j, s=s, random_numbers=random_numbers)
-            total_time = time.time() - start_time
-
+            # start_time = time.time()
+            compressed_answer = run_algorithm(n=n, k=k, j=j, s=s, random_numbers=random_numbers,t=at_least_s)
+            # #----------------------------换行输出------------------------------------#
+            # result_matrix, _ = compressed_answer
+            # for i, row in enumerate(result_matrix):
+            #     print(f"行{i}: {' '.join(map(str, row))}")
+            # #------------------------------------------------------------------#
+            # total_time = time.time() - start_time
+            # result_matrix, _ = compressed_answer
+            _, total_time = compressed_answer
             result = {
                 'answers': [
                     f"Running time: {total_time:.6f} seconds",
-                    f"Sample size: {len(compressed_answer)}"
-                ] + [str(row) for row in compressed_answer]
+                    f"Sample size: {len(compressed_answer[0])}"
+                ] + [f"results{i}: {' '.join(map(str, row))}" for i, row in enumerate(compressed_answer[0])]
             }
 
         except Exception as e:
