@@ -3,7 +3,7 @@ import pymysql
 conn = pymysql.connect(
     host='localhost',
     user='root',               # ← change to your username
-    password='abcd1234',        # ← 改成你的密码
+    password='abcd1234',        # ← your password
     database='optimal_samples',
     charset='utf8mb4'
 )
