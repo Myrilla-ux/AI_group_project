@@ -98,78 +98,52 @@ Forwarding                    https://xxxx-xx-xx-xx.ngrok.io -> http://localhost
 
 复制这个 `https` 开头的地址，在手机浏览器打开即可访问你的本地服务！
 
---
+---
 
-##  📦 数据库（本地 MySQL 配置）
 
-以下是如何在 **macOS** 和 **Windows** 上安装、启动、使用 MySQL，并连接到你的 Flask 项目的步骤。
+## 💾 本地数据库配置（MySQL）
+
+适用于 macOS 和 Windows
 
 ---
 
-### 📥 第一步：安装 MySQL
-#### 🖥️ macOS：
+### ① 安装 MySQL
 
-打开终端，执行：
+#### 🖥 macOS：
 
 ```bash
 brew install mysql
 ```
 
-> 请先安装 Homebrew：https://brew.sh/
-
-----
-
 #### 🪟 Windows：
 
-1. 访问官网下载地址：  
-   https://dev.mysql.com/downloads/installer/
-
-2. 下载 "MySQL Installer for Windows"
-
-3. 安装时勾选：
-   - MySQL Server
-   - MySQL Workbench（推荐）
-   - MySQL Shell
-
-4. 设置 root 密码（务必记住！）
+从官网下载安装器：[MySQL Installer](https://dev.mysql.com/downloads/installer/)
 
 ---
 
-### 🚀 第二步：启动 MySQL 服务
+### ② 启动服务
 
-#### 🖥️ macOS：
+#### 🖥 macOS：
 
 ```bash
 brew services start mysql
 ```
 
-停止服务：
-
-```bash
-brew services stop mysql
-```
-
----
-
 #### 🪟 Windows：
 
-使用方式一（推荐）：
-- 打开 **XAMPP** 控制面板，点击 MySQL Start
-
-或方式二：
-- 打开“服务” (`services.msc`)，找到 `MySQL`，右键 → 启动
+通过 XAMPP 控制面板或服务管理器启动 MySQL 服务
 
 ---
 
-### 🔑 第三步：登录 MySQL 并设置密码
+### ③ 登录并设置密码
 
-#### macOS (首次登录不需要密码)：
+#### macOS 初次登录（无密码）：
 
 ```bash
 mysql -u root
 ```
 
-然后设置密码：
+设置密码：
 
 ```sql
 ALTER USER 'root'@'localhost' IDENTIFIED BY '你的密码';
@@ -177,14 +151,15 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
-此后用密码登录：
+以后登录：
 
 ```bash
 mysql -u root -p
 ```
 
 #### Windows：
-使用安装时设置的密码：
+
+使用安装时设置的密码登录：
 
 ```bash
 mysql -u root -p
@@ -192,7 +167,7 @@ mysql -u root -p
 
 ---
 
-### 🗃️ 第四步：创建数据库和表
+### ④ 创建数据库和表结构
 
 ```sql
 CREATE DATABASE optimal_samples;
@@ -208,7 +183,7 @@ CREATE TABLE results (
 
 ---
 
-### ✅ 第五步：验证是否创建成功
+### ⑤ 验证是否创建成功
 
 ```sql
 SHOW TABLES;
@@ -218,9 +193,9 @@ SELECT * FROM results;
 
 ---
 
-### 🧪 第六步：让 Flask 连接数据库
+### ⑥ Flask 项目连接数据库
 
-📁 在 `db_utils.py` 中配置：
+📁 `db_utils.py` 示例：
 
 ```python
 import pymysql
@@ -238,15 +213,15 @@ conn = pymysql.connect(
 
 ### 📄 页面说明：results.html
 
-该页面用于显示数据库中保存的历史分组结果。
+用于展示数据库中已存储的样本分组历史记录。
 
-#### 📁 页面文件路径：
+#### 文件路径：
 
 ```
 templates/results.html
 ```
 
-#### 📞 对应 Flask 路由：
+#### 对应路由：
 
 ```python
 @app.route('/results')
@@ -255,7 +230,7 @@ def show_results():
     return render_template('results.html', records=records)
 ```
 
-### 🛠 数据查询函数（`db_utils.py`）：
+#### 数据查询函数：
 
 ```python
 def get_all_results():
@@ -263,4 +238,13 @@ def get_all_results():
         cursor.execute("SELECT id, identifier, sample_groups, created_at FROM results ORDER BY id DESC")
         return cursor.fetchall()
 ```
+
+---
+
+## ✅ 项目启动
+
+```bash
+python app.py
+```
+
 ---
