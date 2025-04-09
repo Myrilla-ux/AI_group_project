@@ -1,4 +1,3 @@
-
 # 🌟 An Optimal Sample Selection System Project
 A Flask-based web application for generating and storing optimal sample groupings based on user-defined parameters.
 
@@ -99,10 +98,12 @@ Forwarding                    https://xxxx-xx-xx-xx.ngrok.io -> http://localhost
 
 复制这个 `https` 开头的地址，在手机浏览器打开即可访问你的本地服务！
 
----
+--
 
 ##  📦 数据库（本地 MySQL 配置）
+
 以下是如何在 **macOS** 和 **Windows** 上安装、启动、使用 MySQL，并连接到你的 Flask 项目的步骤。
+
 ---
 
 ### 📥 第一步：安装 MySQL
@@ -116,7 +117,7 @@ brew install mysql
 
 > 请先安装 Homebrew：https://brew.sh/
 
----
+----
 
 #### 🪟 Windows：
 
