@@ -1,20 +1,27 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, flash
 from algorithm import run_algorithm
-from db_utils import save_to_db, get_all_results
+from db_utils import save_to_db, get_all_results, delete_result_by_id
+
 import random
 import time
 
 app = Flask(__name__)
+app.secret_key = 'your-secret-key'  # ✅ 启用 flash 功能
 
+# ✅ 用于缓存最近一次执行的 result_matrix
+last_result_matrix = None
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    global last_result_matrix
+
     result = None
     value_input = ''
     input_n_values = []
 
     if request.method == 'POST':
         try:
+            action = request.form.get('action')  
             m = int(request.form.get('m'))
             n = int(request.form.get('n'))
             k = int(request.form.get('k'))
@@ -22,6 +29,13 @@ def index():
             s = int(request.form.get('s'))
             at_least_s = int(request.form.get('at_least_s'))
             n_mode = request.form.get('n_mode')
+
+            if action == 'clear':
+                last_result_matrix = None
+                return render_template("index.html",
+                                       result=None,
+                                       value_input='',
+                                       input_n_values=[])
 
             if n_mode == 'random':
                 random_numbers = random.sample(range(1, m + 1), n)
@@ -32,19 +46,30 @@ def index():
 
             value_input = ', '.join(str(x) for x in random_numbers)
 
-            # 调用算法并计时
-            result_matrix, total_time = run_algorithm(
-                n=n, k=k, j=j, s=s, random_numbers=random_numbers, t=at_least_s
-            )
-            result = {
-                'answers': [
-                    f"Running time: {total_time:.6f} seconds",
-                    f"Sample size: {len(result_matrix)}"
-                ] + [f"results{i}: {' '.join(map(str, row))}" for i, row in enumerate(result_matrix)]
-            }
-            if action == 'store':
-                identifier = f"{m}-{n}-{k}-{j}-{s}-{at_least_s}"
-                save_to_db(identifier, result_matrix)
+            if action == 'execute':
+                result_matrix, total_time = run_algorithm(
+                    n=n, k=k, j=j, s=s, random_numbers=random_numbers, t=at_least_s
+                )
+                last_result_matrix = result_matrix
+
+                result = {
+                    'answers': [
+                        f"Running time: {total_time:.6f} seconds",
+                        f"Sample size: {len(result_matrix)}"
+                    ] + [f"results{i}: {' '.join(map(str, row))}" for i, row in enumerate(result_matrix)]
+                }
+
+            elif action == 'store':
+                if last_result_matrix:
+                    identifier = f"{m}-{n}-{k}-{j}-{s}-{at_least_s}"
+                    save_to_db(identifier, last_result_matrix)
+                    result = {
+                        'answers': [f"Stored to DB with ID: {identifier}"]
+                    }
+                else:
+                    result = {
+                        'answers': ["No result to store. Please run Execute first."]
+                    }
 
         except Exception as e:
             result = {
@@ -55,10 +80,22 @@ def index():
                            result=result,
                            value_input=value_input,
                            input_n_values=input_n_values)
+
 @app.route('/results')
 def show_results():
     records = get_all_results()
     return render_template('results.html', records=records)
 
+@app.route('/delete_record', methods=['POST'])
+def delete_record():
+    record_id = request.form.get('id')
+    if record_id:
+        delete_result_by_id(record_id)
+        flash(f"Deleted record ID: {record_id}")
+    else:
+        flash("Error: Missing record ID")
+    return redirect(url_for('show_results'))
+
+
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0',port=5050)
+    app.run(debug=True, host='0.0.0.0', port=5050)

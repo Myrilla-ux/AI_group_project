@@ -201,17 +201,23 @@
 
       <!-- 按钮区 -->
       <div class="button-group">
-        <button type="submit" name="action" value="store">Store DB</button>
+        <button type="submit" name="action" value="store">Store</button>
+        <button type="button" onclick="window.location.href='/results'">DB</button>
         <button type="submit" name="action" value="execute">Execute</button>
         <button type="submit" name="action" value="stop" style="background: gray;">Stop</button>
         <button type="submit" name="action" value="delete" style="background: gray;">Delete</button>
       </div>
 
       <!-- 输出结果 -->
-      <div class="result-group">
-        <label><strong>Results</strong></label>
-        <textarea readonly rows="8">{% if result %}{{ result.answers | join('\n') }}{% endif %}</textarea>
-      </div>
+<div class="result-group">
+  <label><strong>Results</strong></label>
+  <textarea readonly rows="8">{% if result %}{{ result.answers | join('\n') }}{% endif %}</textarea>
+
+  <!-- ✅ 清除结果按钮 -->
+  <div style="margin-top: 10px;">
+    <button type="submit" name="action" value="clear" style="background: #e74c3c; color: white;">Clear</button>
+  </div>
+</div>
 
       <!-- 页面右侧按钮 -->
       <div class="side-buttons">
@@ -230,6 +236,18 @@
     const inputRadio = document.querySelector('input[name="n_mode"][value="input"]');
     const inputNSection = document.getElementById('user-input-n');
     const inputGrid = document.getElementById('input-grid');
+
+    function confirmRedirect() {
+      const form = document.querySelector('form');
+      const confirmed = confirm("是否跳转到数据库页面？");
+      if (confirmed) {
+      form.action = "/store_and_redirect"; // 自定义保存+跳转的后端路由
+      } else {
+        return false; // 阻止提交
+      }
+      return true;
+  }
+
 
     function renderInputBoxes() {
       const m = parseInt(mInput.value);
@@ -257,13 +275,18 @@
       inputNSection.style.display = 'block';
     }
 
-    inputRadio.addEventListener('change', () => {
-      if (inputRadio.checked) renderInputBoxes();
-      else {
-        inputNSection.style.display = 'none';
-        inputGrid.innerHTML = '';
-      }
-    });
+    const radios = document.querySelectorAll('input[name="n_mode"]');
+radios.forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (inputRadio.checked) {
+      renderInputBoxes();
+    } else {
+      inputNSection.style.display = 'none';
+      inputGrid.innerHTML = '';
+    }
+  });
+});
+
 
     mInput.addEventListener('input', () => {
       if (inputRadio.checked) renderInputBoxes();
