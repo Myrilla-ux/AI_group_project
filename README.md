@@ -3,9 +3,13 @@ A Flask-based web application for generating and storing optimal sample grouping
 ✅ 说明：
 
 库	用途
+
 Flask	Web 框架
+
 pymysql	Python 与 MySQL 交互
+
 cryptography	兼容 caching_sha2_password 加密认证方式
+
 pip install flask
 
 pip install numpy
