@@ -26,7 +26,6 @@ flask_demo/
 ├── app.py
 ├── algorithm.py
 ├── db_utils.py
-├── samples.sql
 └── templates/        # 这里必须新建一个文件夹，用于存放 index.html，不能与 app.py 并列
     └── index.html
     └── results.html
