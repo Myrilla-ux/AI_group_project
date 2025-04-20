@@ -5,13 +5,6 @@
   <title>Sample Selection Records</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    .param-button {
-      cursor: pointer;
-      text-align: left;
-    }
-    .param-button:hover {
-      background-color: #f1f1f1;
-    }
     .group-display {
       margin-top: 30px;
       background-color: #f8f9fa;
@@ -22,66 +15,139 @@
     pre {
       white-space: pre-wrap;
     }
+    @media print {
+      button, .pagination, .btn-primary, .btn-danger {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="container my-5">
-    <h1 class="mb-4 text-center">Sample Selection Records</h1>
+<div class="container my-5">
+  <h1 class="mb-4 text-center">Sample Selection Records</h1>
 
-    <!-- ✅ 删除成功提示 -->
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-          {{ messages[0] }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endif %}
-    {% endwith %}
-
-    {% if records %}
-      <div class="list-group">
-        {% for row in records %}
-          <div class="list-group-item d-flex justify-content-between align-items-center">
-            <!-- 点击展示 -->
-            <div class="param-button flex-grow-1" onclick="showGroup('{{ row[1] | escape }}', `{{ row[2] | escape }}`)">
-              {{ row[1] }}
-            </div>
-            <!-- 删除按钮 -->
-            <form method="post" action="/delete_record" onsubmit="return confirm('Are you sure you want to delete this record?');">
-              <input type="hidden" name="id" value="{{ row[0] }}">
-              <button class="btn btn-danger btn-sm">Delete</button>
-            </form>
-          </div>
-        {% endfor %}
-      </div>
-
-      <!-- 展示区域 -->
-      <div id="group-container" class="group-display d-none">
-        <h5><strong>Selected Parameter Set:</strong> <span id="param-title"></span></h5>
-        <hr>
-        <pre id="group-content"></pre>
-      </div>
-    {% else %}
-      <div class="alert alert-warning">No records found.</div>
-    {% endif %}
-
-    <div class="text-center mt-4">
-      <a href="/" class="btn btn-primary">Back to Home</a>
+  {% if records %}
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Identifier</th>
+            <th style="width: 200px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
     </div>
 
-    <script>
-      function showGroup(param, groupData) {
-        const title = document.getElementById('param-title');
-        const content = document.getElementById('group-content');
-        const container = document.getElementById('group-container');
+    <!-- 展示区域 -->
+    <div id="group-container" class="group-display d-none">
+      <h5><strong>Selected Parameter Set:</strong> <span id="param-title"></span></h5>
+      <p><strong>n Values:</strong> <span id="n-values"></span></p>
+      <p><strong>Optimal Groups:</strong></p>
+      <pre id="group-content"></pre>
+    </div>
+  {% else %}
+    <div class="alert alert-warning">No records found.</div>
+  {% endif %}
 
-        title.textContent = param;
-        content.textContent = groupData.replaceAll(',', ', ');
-        container.classList.remove('d-none');
+  <!-- 分页控件放在按钮上面 -->
+<ul class="pagination pagination-sm mb-3 justify-content-center" id="pagination"></ul>
+
+<!-- 底部按钮区 -->
+<div class="text-center mt-2">
+  <button class="btn btn-secondary" onclick="printGroup()">🖨️ Print Result</button>
+  <a href="/" class="btn btn-primary ms-3">Back to Home</a>
+</div>
+
+
+  <!-- 后端数据 -->
+  <script type="application/json" id="records-json">
+    {{ records | tojson | safe }}
+  </script>
+
+  <script>
+    let records = [];
+    let currentPage = 1;
+    const pageSize = 7;  // ✅ 每页显示 7 条
+
+    window.onload = () => {
+      const jsonData = document.getElementById('records-json');
+      if (jsonData) {
+        records = JSON.parse(jsonData.textContent);
+        renderPage(1);
       }
-    </script>
+    };
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  </div>
+    function renderPage(page) {
+      currentPage = page;
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const pageRecords = records.slice(start, end);
+      const tbody = document.getElementById("table-body");
+      tbody.innerHTML = "";
+
+      pageRecords.forEach(row => {
+        const [id, identifier, optimal_groups, n_values, sample_groups] = row;
+
+        const tr = document.createElement("tr");
+
+        const tdActions = document.createElement("td");
+        tdActions.className = 'd-flex gap-2';
+
+        const detailBtn = document.createElement("button");
+        detailBtn.className = "btn btn-sm btn-info";
+        detailBtn.textContent = "Details";
+        detailBtn.onclick = () => showDetails(identifier, sample_groups, n_values);
+
+
+        const deleteForm = document.createElement("form");
+        deleteForm.method = "post";
+        deleteForm.action = "/delete_record";
+        deleteForm.onsubmit = () => confirm("Are you sure you want to delete this record?");
+        deleteForm.innerHTML = `<input type="hidden" name="id" value="${id}">
+          <button class="btn btn-sm btn-danger">Delete</button>`;
+
+        tdActions.appendChild(detailBtn);
+        tdActions.appendChild(deleteForm);
+
+        tr.innerHTML = `<td>${identifier}</td>`;
+        tr.appendChild(tdActions);
+        tbody.appendChild(tr);
+      });
+
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(records.length / pageSize);
+      const pagination = document.getElementById("pagination");
+      pagination.innerHTML = "";
+      for (let i = 1; i <= totalPages; i++) {
+        const li = document.createElement("li");
+        li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+        li.innerHTML = `<a class="page-link" href="#" onclick="renderPage(${i})">${i}</a>`;
+        pagination.appendChild(li);
+      }
+    }
+
+    function showDetails(identifier, groups, n_values) {
+      document.getElementById('param-title').textContent = identifier;
+      document.getElementById('n-values').textContent = (n_values || 'N/A').split(',').join(', ');
+      document.getElementById('group-content').textContent = groups;
+      document.getElementById('group-container').classList.remove('d-none');
+    }
+
+    function printGroup() {
+      const content = document.getElementById('group-container').innerHTML;
+      const original = document.body.innerHTML;
+      document.body.innerHTML = `<div style="padding: 30px; font-family: sans-serif;">${content}</div>`;
+      window.print();
+      document.body.innerHTML = original;
+      window.location.reload();
+    }
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</div>
 </body>
 </html>
