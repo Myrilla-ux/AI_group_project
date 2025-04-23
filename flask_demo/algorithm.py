@@ -2,106 +2,112 @@ import random
 import itertools
 import time
 import numpy as np
+from numba import njit
+import math
 
 def run_algorithm(n, k, j, s, random_numbers, t):
     start_time = time.time()
 
+    threshold = 1
+    all_combinations = math.comb(j, s)
+
     # 生成 s 矩阵
     num_zeros_s = n - s
-    positions_zeros = list(itertools.combinations(range(n), num_zeros_s))
-    arr_s = []
-    for pos in positions_zeros:
-        binary_s = [1] * n
-        for p in pos:
-            binary_s[p] = 0
-        arr_s.append(binary_s)
+    positions_zeros_s = list(itertools.combinations(range(n), num_zeros_s))
+    arr_s = np.ones((len(positions_zeros_s), n), dtype=int)
+    for i, pos in enumerate(positions_zeros_s):
+        arr_s[i, pos] = 0
 
     # 生成 k 矩阵
     num_zeros_k = n - k
-    positions_zeros = list(itertools.combinations(range(n), num_zeros_k))
-    arr_k = []
-    for pos in positions_zeros:
-        binary_k = [1] * n
-        for p in pos:
-            binary_k[p] = 0
-        arr_k.append(binary_k)
+    positions_zeros_k = list(itertools.combinations(range(n), num_zeros_k))
+    arr_k = np.ones((len(positions_zeros_k), n), dtype=int)
+    for i, pos in enumerate(positions_zeros_k):
+        arr_k[i, pos] = 0
 
     # 生成 j 矩阵
     num_zeros_j = n - j
-    positions_zeros = list(itertools.combinations(range(n), num_zeros_j))
-    arr_j = []
-    for pos in positions_zeros:
-        binary_j = [1] * n
-        for p in pos:
-            binary_j[p] = 0
-        arr_j.append(binary_j)
+    positions_zeros_j = list(itertools.combinations(range(n), num_zeros_j))
+    arr_j = np.ones((len(positions_zeros_j), n), dtype=int)
+    for i, pos in enumerate(positions_zeros_j):
+        arr_j[i, pos] = 0
 
-    # 回溯函数
-    def backtrack(arr_s, arr_k, num_zeros_k, selected_combinations, covered_rows_s, covered_rows_k, arr_j, j_counters, t):
-        column_zero_counts = [0] * n
-        for row_idx, row in enumerate(arr_s):
-            if row_idx not in covered_rows_s:
-                for col in range(n):
-                    if row[col] == 0:
-                        column_zero_counts[col] += 1
+    @njit
+    def count_k_covers_s_1(arr_k, arr_s, n):
+        K, N = arr_k.shape
+        S = arr_s.shape[0]
+        cover_counts = np.zeros(K, dtype=np.int32)
+        for i in range(K):
+            for j in range(S):
+                valid = True
+                for col in range(N):
+                    if arr_k[i, col] == 0 and arr_s[j, col] != 0:
+                        valid = False
+                        break
+                if valid:
+                    cover_counts[i] += 1
+        return cover_counts
 
-        sorted_counts = sorted(enumerate(column_zero_counts), key=lambda x: x[1], reverse=True)
-        current_combination = [col for col, _ in sorted_counts[:num_zeros_k]]
-        current_combination = tuple(sorted(current_combination))
+    def count_k_covers_s_2(arr_k, arr_s_remaining, n):
+        k_zero_mask = (arr_k == 0)
+        match_mask = np.logical_or(~k_zero_mask[:, None, :], arr_s_remaining[None, :, :] == 0)
+        can_cover = np.all(match_mask, axis=2)
+        k_cover_count = np.sum(can_cover, axis=1)
+        return k_cover_count
 
-        if current_combination in selected_combinations:
-            for i in range(len(current_combination)):
-                for col, _ in sorted_counts:
-                    if col not in current_combination:
-                        new_comb = list(current_combination)
-                        new_comb[i] = col
-                        new_comb = tuple(sorted(new_comb))
-                        if new_comb not in selected_combinations:
-                            current_combination = new_comb
-                            break
-                if current_combination not in selected_combinations:
-                    break
-            if current_combination in selected_combinations:
-                return
+    def greedy_select_k_rows(arr_k, arr_s, arr_j, t):
+        num_s = arr_s.shape[0]
+        num_j = arr_j.shape[0] if arr_j is not None else 0
 
-        selected_combinations.add(current_combination)
+        selected_k_indices = []
+        uncovered_s_indices = set(range(num_s))
+        j_coverage_counter = np.zeros(num_j, dtype=int)
 
-        for row_idx, row in enumerate(arr_k):
-            if all(row[col] == 0 for col in current_combination) and row_idx not in covered_rows_k:
-                covered_rows_k.append(row_idx)
+        if t < all_combinations:
+            while np.any(j_coverage_counter < t):
+                arr_s_remaining = arr_s[list(uncovered_s_indices)] if uncovered_s_indices else arr_s
+                cover_counts = count_k_covers_s_1(arr_k, arr_s_remaining, n) if n > threshold else count_k_covers_s_2(arr_k, arr_s_remaining, n)
+                best_k_idx = np.argmax(cover_counts)
+                selected_k_indices.append(best_k_idx)
 
-        newly_covered_s_rows = []
-        for row_idx, row in enumerate(arr_s):
-            if all(row[col] == 0 for col in current_combination) and row_idx not in covered_rows_s:
-                covered_rows_s.add(row_idx)
-                newly_covered_s_rows.append(row_idx)
+                k_row = arr_k[best_k_idx]
+                k_zero_mask = (k_row == 0)
+                can_cover_s = np.all(arr_s_remaining[:, k_zero_mask] == 0, axis=1)
+                uncovered_s_list = list(uncovered_s_indices)
+                relative_indices = np.where(can_cover_s)[0]
+                covered_s_indices = [uncovered_s_list[i] for i in relative_indices]
+                uncovered_s_indices.difference_update(covered_s_indices)
 
-        if t != s and newly_covered_s_rows:
-            j_matrix = np.array(arr_j)
-            s_matrix = np.array([arr_s[i] for i in newly_covered_s_rows])
-            mask_matrix = (j_matrix[:, None, :] >= s_matrix[None, :, :])
-            coverage_matrix = mask_matrix.all(axis=2)
-            j_counters_np = np.array(j_counters)
-            match_counts = coverage_matrix.sum(axis=1)
-            j_counters_np += match_counts
-            j_counters[:] = j_counters_np.tolist()
+                selected_s_rows = arr_s[covered_s_indices]
+                s_zero_mask = (selected_s_rows == 0)
+                j_mask = (arr_j == 0)
+                match_mask = np.logical_or(~j_mask[None, :, :], s_zero_mask[:, None, :])
+                can_cover_j = np.all(match_mask, axis=2)
+                j_coverage_counter += np.sum(can_cover_j, axis=0)
+        else:
+            while uncovered_s_indices:
+                arr_s_remaining = arr_s[list(uncovered_s_indices)]
+                cover_counts = count_k_covers_s_1(arr_k, arr_s_remaining, n) if n > threshold else count_k_covers_s_2(arr_k, arr_s_remaining, n)
+                best_k_idx = np.argmax(cover_counts)
+                selected_k_indices.append(best_k_idx)
+                k_row = arr_k[best_k_idx]
+                k_zero_mask = (k_row == 0)
+                can_cover_s = np.all(arr_s_remaining[:, k_zero_mask] == 0, axis=1)
+                uncovered_s_list = list(uncovered_s_indices)
+                relative_indices = np.where(can_cover_s)[0]
+                covered_s_indices = [uncovered_s_list[i] for i in relative_indices]
+                uncovered_s_indices.difference_update(covered_s_indices)
 
-    # 正式执行
-    covered_rows_s = set()
-    covered_rows_k = []
-    selected_combinations = set()
-    j_counters = [0] * len(arr_j)
+        return selected_k_indices
 
-    while len(covered_rows_s) < len(arr_s) and not all(count >= t for count in j_counters):
-        backtrack(arr_s, arr_k, num_zeros_k, selected_combinations, covered_rows_s, covered_rows_k, arr_j, j_counters, t)
+    def decode_selected_k_rows(arr_k, selected_k_indices, random_numbers):
+        selected_rows = arr_k[selected_k_indices]
+        decoded_k = selected_rows * random_numbers
+        return decoded_k
 
-    answer_matrix = [arr_k[row_idx] for row_idx in covered_rows_k]
-
-    compressed_answer = []
-    for row in answer_matrix:
-        replaced = [random_numbers[i] if val == 1 else 0 for i, val in enumerate(row)]
-        compressed = [num for num in replaced if num != 0]
-        compressed_answer.append(compressed)
+    selected_k = greedy_select_k_rows(arr_k, arr_s, arr_j, t)
+    decoded_k = decode_selected_k_rows(arr_k, selected_k, np.array(random_numbers))
+    compressed_answer = [[num for num in row if num != 0] for row in decoded_k.tolist()]
 
     end_time = time.time()
     total_time = end_time - start_time
