@@ -1,5 +1,9 @@
 # 🌟 An Optimal Sample Selection System Project
+
 A Flask-based web application for generating and storing optimal sample groupings based on user-defined parameters.
+
+---
+
 ✅ 说明：
 
 库	用途
@@ -18,6 +22,7 @@ pip install pymysql
 
 pip install cryptography
 
+---
 
 ## 📁 项目结构
 
@@ -191,10 +196,12 @@ CREATE DATABASE optimal_samples;
 USE optimal_samples;
 
 CREATE TABLE results (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  identifier VARCHAR(255),
-  sample_groups TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id INT NOT NULL AUTO_INCREMENT,
+    identifier VARCHAR(255),
+    sample_groups TEXT,
+    n_values TEXT,
+    optimal_groups INT,
+    PRIMARY KEY (id)
 );
 ```
 
