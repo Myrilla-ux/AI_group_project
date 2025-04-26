@@ -5,7 +5,7 @@ import csv
 db_config = {
     'host': 'localhost',
     'user': 'root',
-    'password': '123456',
+    'password': '040724',
     'database': 'optimal_samples',
     'charset': 'utf8mb4'
 }

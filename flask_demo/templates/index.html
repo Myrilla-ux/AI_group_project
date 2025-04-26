@@ -178,6 +178,7 @@
         <input type="number" id="at_least_s" name="at_least_s" min="1" required value="{{ request.form.get('at_least_s', '') }}" />
         <span><strong>s samples</strong></span>
       </div>
+      <div id="at-least-error" style="color: red; font-size: 12px; display: none;"></div>
 
       <!-- 单选 -->
       <div class="radio-group">
@@ -233,10 +234,12 @@
     const mInput = document.getElementById('m');
     const nInput = document.getElementById('n');
     const sInput = document.getElementById('s');
+    const jInput = document.getElementById('j');
     const atLeastInput = document.getElementById('at_least_s');
     const inputRadio = document.querySelector('input[name="n_mode"][value="input"]');
     const inputNSection = document.getElementById('user-input-n');
     const inputGrid = document.getElementById('input-grid');
+    const errorContainer = document.getElementById('at-least-error');
 
     function confirmRedirect() {
       const form = document.querySelector('form');
@@ -247,8 +250,18 @@
         return false; // 阻止提交
       }
       return true;
-  }
-
+    }
+     // 计算组合数 C(j, s) = j! / (s! * (j - s)!)
+    function calculateCombination(j, s) {
+      if (s > j) return 0; // 如果 s > j，返回 0，因为组合数是无效的
+      let numerator = 1;
+      let denominator = 1;
+      for (let i = 0; i < s; i++) {
+        numerator *= (j - i);  // 分子：j * (j-1) * ... * (j-s+1)
+        denominator *= (i + 1); // 分母：s!
+      }
+      return numerator / denominator; // 返回 C(j, s)
+    }
 
     function renderInputBoxes() {
       const m = parseInt(mInput.value);
@@ -297,12 +310,17 @@ radios.forEach(radio => {
       if (inputRadio.checked) renderInputBoxes();
     });
 
-    sInput.addEventListener('input', () => {
-      const sVal = parseInt(sInput.value);
-      if (!isNaN(sVal)) {
-        atLeastInput.max = sVal;
-        if (parseInt(atLeastInput.value) > sVal) {
-          atLeastInput.value = sVal;
+    // 监听 at_least_s 输入框的变化
+    atLeastInput.addEventListener('input', () => {
+      const sVal = parseInt(sInput.value); // 获取 s 的值
+      const jVal = parseInt(jInput.value); // 获取 j 的值
+      if (!isNaN(sVal) && !isNaN(jVal)) {
+        const combo = calculateCombination(jVal, sVal);  // 计算 C(j, s)
+
+        // 如果 at_least_s 的值大于组合数 C(j, s)，显示错误消息
+        if (parseInt(atLeastInput.value) > combo) {
+          errorContainer.style.display = 'block';  // 显示错误消息
+          errorContainer.textContent = `Error: The value of at least s cannot exceed C(${jVal}, ${sVal}) = ${combo}.`;
         }
       }
     });

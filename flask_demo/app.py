@@ -84,6 +84,7 @@ def index():
                 except Exception as e:
                     result = {'answers': [f"🔥 DB Error: {str(e)}"]}
                     print("🔥 Store error:", e)
+                    print("Detailed error:", str(e))
 
         except Exception as e:
             result = {
