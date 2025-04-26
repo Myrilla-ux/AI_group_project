@@ -7,7 +7,7 @@ import math
 def run_algorithm(n, k, j, s, random_numbers, t):
     start_time = time.time()
 
-    threshold = 1
+    threshold = 13
     all_combinations = math.comb(j, s)
 
     # 生成 s 矩阵
