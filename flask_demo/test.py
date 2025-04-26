@@ -36,7 +36,7 @@ for n in n_values:
 
                 # 保存结果到文件
                 with open('flask_demo\\test_result.txt', 'a') as file:
-                    file.write(f"Parameters (n, k, j, s): ({n}, {k}, {j}, {s})")
+                    file.write(f"Parameters (n, k, j, s, t): ({n}, {k}, {j}, {s}, {at_least_s})")
                     file.write(f"Result Matrix: {len(result_matrix)}")
-                    file.write(f"Total Time: {total_time:.4f}\n")
+                    file.write(f"Total Time: {total_time:.6f}\n")
                     print("test\n")
