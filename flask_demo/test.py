@@ -35,7 +35,7 @@ for n in n_values:
                 result_matrix, total_time = run_algorithm(n, k, j, s, random_numbers, at_least_s)
 
                 # 保存结果到文件
-                with open('D:\\01MUST\人工智能\Group Project\project\AI_group_project\\flask_demo\\test_result.txt', 'a') as file:
+                with open('flask_demo\\test_result.txt', 'a') as file:
                     file.write(f"Parameters (n, k, j, s): ({n}, {k}, {j}, {s})")
                     file.write(f"Result Matrix: {len(result_matrix)}")
                     file.write(f"Total Time: {total_time:.4f}\n")
