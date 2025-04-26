@@ -48,7 +48,7 @@ def run_algorithm(n, k, j, s, random_numbers, t):
                     cover_counts[i] += 1
         return cover_counts
 
-    def count_k_covers_s_2(arr_k, arr_s_remaining, n):
+    def count_k_covers_s_2(arr_k, arr_s_remaining):
         k_zero_mask = (arr_k == 0)
         match_mask = np.logical_or(~k_zero_mask[:, None, :], arr_s_remaining[None, :, :] == 0)
         can_cover = np.all(match_mask, axis=2)
@@ -66,7 +66,7 @@ def run_algorithm(n, k, j, s, random_numbers, t):
         if t < all_combinations:
             while np.any(j_coverage_counter < t):
                 arr_s_remaining = arr_s[list(uncovered_s_indices)] if uncovered_s_indices else arr_s
-                cover_counts = count_k_covers_s_1(arr_k, arr_s_remaining, n) if n > threshold else count_k_covers_s_2(arr_k, arr_s_remaining, n)
+                cover_counts = count_k_covers_s_1(arr_k, arr_s_remaining) if n > threshold else count_k_covers_s_2(arr_k, arr_s_remaining)
                 best_k_idx = np.argmax(cover_counts)
                 selected_k_indices.append(best_k_idx)
 
@@ -87,7 +87,7 @@ def run_algorithm(n, k, j, s, random_numbers, t):
         else:
             while uncovered_s_indices:
                 arr_s_remaining = arr_s[list(uncovered_s_indices)]
-                cover_counts = count_k_covers_s_1(arr_k, arr_s_remaining, n) if n > threshold else count_k_covers_s_2(arr_k, arr_s_remaining, n)
+                cover_counts = count_k_covers_s_1(arr_k, arr_s_remaining) if n > threshold else count_k_covers_s_2(arr_k, arr_s_remaining)
                 best_k_idx = np.argmax(cover_counts)
                 selected_k_indices.append(best_k_idx)
                 k_row = arr_k[best_k_idx]
