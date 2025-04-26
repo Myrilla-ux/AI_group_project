@@ -3,7 +3,6 @@ from algorithm import run_algorithm
 from db_utils import save_to_db, get_all_results, delete_result_by_id
 
 import random
-import time
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key'

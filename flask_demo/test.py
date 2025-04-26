@@ -1,50 +1,42 @@
-import requests
+# version 2025/4/27 测试k=6固定的所有情况 这个是通过request的
+# version 2025/4/27 直接测试算法而不是给前端发消息了 那个格式解析没处理liao
 
-# 设置 Flask 应用的基本 URL
-base_url = 'http://127.0.0.1:5050'
+import math
+import random
+from algorithm import run_algorithm
 
 # 固定 k 为 6
 k = 6
 
 # 遍历所有可能的 m, n, j, s, at_least_s 和 n_mode
-m_values = [5, 10, 15]  # 你可以根据需要增加更多的 m 值
-n_values = [3, 5, 7]  # 你可以根据需要增加更多的 n 值
-j_values = [1, 2, 3]  # 你可以根据需要增加更多的 j 值
-s_values = [1, 2, 3]  # 你可以根据需要增加更多的 s 值
-at_least_s_values = [1, 2, 3]  # 你可以根据需要增加更多的 at_least_s 值
-n_modes = ['random', 'manual']  # 选择手动输入或随机生成
-
+m_values = range(45, 55)  # 45 ≤ m ≤ 54
+n_values = range(7, 26)   # 7 ≤ n ≤ 25
+s_values = range(3, 8)
 # 遍历所有可能的组合并发送请求
-for m in m_values:
-    for n in n_values:
-        for j in j_values:
-            for s in s_values:
-                for at_least_s in at_least_s_values:
-                    for n_mode in n_modes:
-                        # 构建请求数据
-                        data = {
-                            'action': 'execute',  # 执行算法
-                            'm': m,
-                            'n': n,
-                            'k': k,
-                            'j': j,
-                            's': s,
-                            'at_least_s': at_least_s,
-                            'n_mode': n_mode,
-                        }
+for n in n_values:
+    random_numbers = random.sample(range(1, 100), n) 
+    for s in range(k, 2, -1):  # s 必须小于或等于 k
+        j_values = range(s, k + 1) # 必须在循环里面处理j的值
+        for j in range(s, k + 1):  # j 必须小于或等于 k 且大于或等于 s
+            comb = math.comb(j, s)
+            at_least_s_values = range(1, comb + 1)
+            for at_least_s in range(1, comb + 1):
+                # 构建请求数据
+                data = {
+                    'action': 'execute',  # 执行算法
+                    'm': 45, # 固定
+                    'n': n,
+                    'k': k,
+                    'j': j,
+                    's': s,
+                    'at_least_s': at_least_s,
+                    'n_mode': 'random',
+                }
+                result_matrix, total_time = run_algorithm(n, k, j, s, random_numbers, at_least_s)
 
-                        if n_mode == 'manual':
-                            # 如果选择手动输入，给出一些随机的 n 值作为示例
-                            for i in range(1, n + 1):
-                                data[f'input_n_{i}'] = str(i)
-
-                        # 发送 POST 请求到 Flask 服务器
-                        response = requests.post(f'{base_url}/', data=data)
-
-                        # 打印响应内容
-                        print(f"Test for m={m}, n={n}, j={j}, s={s}, at_least_s={at_least_s}, n_mode={n_mode}")
-                        print("Response:", response.text)
-
-# 如果你需要清除记录，可以发送清除请求
-clear_data = {'action': 'clear'}
-requests.post(f'{base_url}/', data=clear_data)
+                # 保存结果到文件
+                with open('D:\\01MUST\人工智能\Group Project\project\AI_group_project\\flask_demo\\test_result.txt', 'a') as file:
+                    file.write(f"Parameters (n, k, j, s): ({n}, {k}, {j}, {s})")
+                    file.write(f"Result Matrix: {len(result_matrix)}")
+                    file.write(f"Total Time: {total_time:.4f}\n")
+                    print("test\n")
