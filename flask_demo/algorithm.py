@@ -1,7 +1,7 @@
 import itertools
 import time
 import numpy as np
-from numba import njit
+from numba import njit, prange
 import math
 
 def run_algorithm(n, k, j, s, random_numbers, t):
@@ -31,12 +31,13 @@ def run_algorithm(n, k, j, s, random_numbers, t):
     for i, pos in enumerate(positions_zeros_j):
         arr_j[i, pos] = 0
 
-    @njit
-    def count_k_covers_s_1(arr_k, arr_s, n):
+    @njit(parallel=True)
+    def count_k_covers_s_1(arr_k, arr_s):
         K, N = arr_k.shape
         S = arr_s.shape[0]
         cover_counts = np.zeros(K, dtype=np.int32)
-        for i in range(K):
+        
+        for i in prange(K):  # 使用 prange 实现并行
             for j in range(S):
                 valid = True
                 for col in range(N):
