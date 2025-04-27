@@ -128,6 +128,31 @@
       width: 60px;
       padding: 5px;
     }
+    /* 新增：进度条 */
+    .progress-container {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin: 10px 0;
+    }
+    .progress-bar-bg {
+      width: 50%;
+      height: 8px;
+      background: #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 8px;
+      width: 0%;
+      background: #4caf50;
+      transition: width 0.2s linear;
+    }
+    .timer-display {
+      font-size: 14px;
+      width: 60px;
+      text-align: right;
+    }
     @media (max-width: 768px) {
       .form-row {
         flex-direction: column;
@@ -189,9 +214,7 @@
       <!-- Input n 区域 -->
       <div class="user-inputs" id="user-input-n" style="display: none;">
         <label><strong>User input n :</strong></label>
-        <div class="user-inputs-grid" id="input-grid">
-          <!-- 动态生成输入框 -->
-        </div>
+        <div class="user-inputs-grid" id="input-grid"></div>
       </div>
 
       <!-- 值输入 -->
@@ -201,26 +224,31 @@
       </div>
 
       <!-- 按钮区 -->
-  <!-- 按钮组 -->
-  <div class="button-group">
-    <button type="submit" name="action" value="execute">Execute</button>
-    <button type="submit" name="action" value="store">Store</button>
-    <button type="button" onclick="window.location.href='/results'">DB</button>
-   <!-- <button type="submit" name="action" value="clear" style="background: #e74c3c;">Clear</button>  -->
-  </div>
+      <div class="button-group">
+        <button type="submit" name="action" value="execute">Execute</button>
+        <button type="submit" name="action" value="store">Store</button>
+        <button type="button" onclick="window.location.href='/results'">DB</button>
+      </div>
 
-  <!-- 输出结果区 -->
-  <div class="result-group">
-    <label><strong>Results</strong></label>
-    <textarea readonly rows="8">{% if result %}{{ result.answers | join('\n') }}{% endif %}</textarea>
- 
-  <!-- ✅ 清除结果按钮 -->
-  <div style="margin-top: 10px;">
-    <button type="submit" name="action" value="clear" style="background: #e74c3c; color: white;">Clear</button>
-  </div>
-</div>
+      <!-- 输出结果区 -->
+      <div class="result-group">
+        <label><strong>Results</strong></label>
 
-      <!-- 页面右侧按钮 -->
+        <!-- 新增进度条和计时器 -->
+        <div class="progress-container">
+          <div class="progress-bar-bg">
+            <div id="progress-bar" class="progress-bar-fill"></div>
+          </div>
+          <div id="timer" class="timer-display">0s</div>
+        </div>
+
+        <textarea readonly rows="8">{% if result %}{{ result.answers | join('\n') }}{% endif %}</textarea>
+
+        <div style="margin-top: 10px;">
+          <button type="submit" name="action" value="clear" style="background: #e74c3c; color: white;">Clear</button>
+        </div>
+      </div>
+
       <div class="side-buttons">
         <button type="button" onclick="window.print()">Print</button>
         <button type="submit" name="action" value="next">NEXT</button>
@@ -229,68 +257,52 @@
     </form>
   </div>
 
-  <!-- JS：动态生成输入框、验证逻辑 -->
-  <script>
-    const mInput = document.getElementById('m');
-    const nInput = document.getElementById('n');
-    const sInput = document.getElementById('s');
-    const jInput = document.getElementById('j');
-    const atLeastInput = document.getElementById('at_least_s');
-    const inputRadio = document.querySelector('input[name="n_mode"][value="input"]');
-    const inputNSection = document.getElementById('user-input-n');
-    const inputGrid = document.getElementById('input-grid');
-    const errorContainer = document.getElementById('at-least-error');
+<!-- 各种JS逻辑 -->
+<script>
+const mInput = document.getElementById('m');
+const nInput = document.getElementById('n');
+const sInput = document.getElementById('s');
+const jInput = document.getElementById('j');
+const atLeastInput = document.getElementById('at_least_s');
+const inputRadio = document.querySelector('input[name="n_mode"][value="input"]');
+const inputNSection = document.getElementById('user-input-n');
+const inputGrid = document.getElementById('input-grid');
+const errorContainer = document.getElementById('at-least-error');
 
-    function confirmRedirect() {
-      const form = document.querySelector('form');
-      const confirmed = confirm("是否跳转到数据库页面？");
-      if (confirmed) {
-      form.action = "/store_and_redirect"; // 自定义保存+跳转的后端路由
-      } else {
-        return false; // 阻止提交
-      }
-      return true;
-    }
-     // 计算组合数 C(j, s) = j! / (s! * (j - s)!)
-    function calculateCombination(j, s) {
-      if (s > j) return 0; // 如果 s > j，返回 0，因为组合数是无效的
-      let numerator = 1;
-      let denominator = 1;
-      for (let i = 0; i < s; i++) {
-        numerator *= (j - i);  // 分子：j * (j-1) * ... * (j-s+1)
-        denominator *= (i + 1); // 分母：s!
-      }
-      return numerator / denominator; // 返回 C(j, s)
-    }
+function calculateCombination(j, s) {
+  if (s > j) return 0;
+  let numerator = 1, denominator = 1;
+  for (let i = 0; i < s; i++) {
+    numerator *= (j - i);
+    denominator *= (i + 1);
+  }
+  return numerator / denominator;
+}
 
-    function renderInputBoxes() {
-      const m = parseInt(mInput.value);
-      const n = parseInt(nInput.value);
+function renderInputBoxes() {
+  const m = parseInt(mInput.value);
+  const n = parseInt(nInput.value);
 
-      if (isNaN(m) || m < 45 || m > 54 || isNaN(n) || n < 7 || n > 25) {
-        alert("Please enter valid m (45~54) and n (7~25) before selecting 'Input n'.");
-        inputRadio.checked = false;
-        inputNSection.style.display = 'none';
-        inputGrid.innerHTML = '';
-        return;
-      }
+  if (isNaN(m) || m < 45 || m > 54 || isNaN(n) || n < 7 || n > 25) {
+    alert("Please enter valid m (45~54) and n (7~25)");
+    inputRadio.checked = false;
+    inputNSection.style.display = 'none';
+    inputGrid.innerHTML = '';
+    return;
+  }
 
-      inputGrid.innerHTML = '';
-      for (let i = 1; i <= n; i++) {
-        const box = document.createElement('div');
-        box.className = 'user-input-box';
-        box.innerHTML = `
-          <input type="number" name="input_n_${i}" min="1" max="${m}" required />
-          <div>${i}</div>
-        `;
-        inputGrid.appendChild(box);
-      }
+  inputGrid.innerHTML = '';
+  for (let i = 1; i <= n; i++) {
+    inputGrid.innerHTML += `
+      <div class="user-input-box">
+        <input type="number" name="input_n_${i}" min="1" max="${m}" required />
+        <div>${i}</div>
+      </div>`;
+  }
+  inputNSection.style.display = 'block';
+}
 
-      inputNSection.style.display = 'block';
-    }
-
-    const radios = document.querySelectorAll('input[name="n_mode"]');
-radios.forEach(radio => {
+document.querySelectorAll('input[name="n_mode"]').forEach(radio => {
   radio.addEventListener('change', () => {
     if (inputRadio.checked) {
       renderInputBoxes();
@@ -301,38 +313,50 @@ radios.forEach(radio => {
   });
 });
 
+mInput.addEventListener('input', renderInputBoxes);
+nInput.addEventListener('input', renderInputBoxes);
 
-    mInput.addEventListener('input', () => {
-      if (inputRadio.checked) renderInputBoxes();
-    });
+atLeastInput.addEventListener('input', () => {
+  const sVal = parseInt(sInput.value);
+  const jVal = parseInt(jInput.value);
+  if (!isNaN(sVal) && !isNaN(jVal)) {
+    const combo = calculateCombination(jVal, sVal);
+    if (parseInt(atLeastInput.value) > combo) {
+      errorContainer.style.display = 'block';
+      errorContainer.textContent = `Error: at least s cannot exceed C(${jVal}, ${sVal}) = ${combo}`;
+    }
+  }
+});
 
-    nInput.addEventListener('input', () => {
-      if (inputRadio.checked) renderInputBoxes();
-    });
+window.onload = function () {
+  if (inputRadio.checked) renderInputBoxes();
+};
 
-    // 监听 at_least_s 输入框的变化
-    atLeastInput.addEventListener('input', () => {
-      const sVal = parseInt(sInput.value); // 获取 s 的值
-      const jVal = parseInt(jInput.value); // 获取 j 的值
-      if (!isNaN(sVal) && !isNaN(jVal)) {
-        const combo = calculateCombination(jVal, sVal);  // 计算 C(j, s)
+//  新增：控制进度条和计时器
+let startTime = null;
+let intervalId = null;
+let maxTime = 10; // 默认10秒
 
-        // 如果 at_least_s 的值大于组合数 C(j, s)，显示错误消息
-        if (parseInt(atLeastInput.value) > combo) {
-          errorContainer.style.display = 'block';  // 显示错误消息
-          errorContainer.textContent = `Error: The value of at least s cannot exceed C(${jVal}, ${sVal}) = ${combo}.`;
-        }
-      }
-    });
-  </script>
-  <script>
-    window.onload = function () {
-      if (inputRadio.checked) {
-        renderInputBoxes();
-      }
-    };
-  </script>
+function startProgress() {
+  startTime = Date.now();
+  clearInterval(intervalId);
   
-  
+  intervalId = setInterval(() => {
+    const elapsedMs = Date.now() - startTime;
+    const elapsedSec = (elapsedMs / 1000).toFixed(6);  //  保留6位小数
+    document.getElementById('timer').textContent = `${elapsedSec}s`;
+
+    const percent = Math.min((elapsedMs / 1000) / maxTime * 100, 100);
+    document.getElementById('progress-bar').style.width = percent + '%';
+}, 50);
+
+}
+
+// 点击 Execute 开始计时
+document.querySelector('button[name="action"][value="execute"]').addEventListener('click', () => {
+  startProgress();
+});
+
+</script>
 </body>
 </html>
