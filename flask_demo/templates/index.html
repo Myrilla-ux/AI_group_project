@@ -106,9 +106,6 @@
       justify-items: center;
       margin-top: 10px;
     }
-    .user-input-box {
-      text-align: center;
-    }
     .user-input-box input {
       width: 45px;
       padding: 5px;
@@ -128,7 +125,7 @@
       width: 60px;
       padding: 5px;
     }
-    /* 新增：进度条 */
+    /* 进度条 */
     .progress-container {
       display: flex;
       align-items: center;
@@ -173,7 +170,6 @@
     <p>Please input the following parameters</p>
 
     <form method="POST">
-      <!-- 参数输入 -->
       <div class="form-row">
         <div class="form-group">
           <label for="m">m (45 ≤ m ≤ 54)</label>
@@ -189,7 +185,7 @@
         </div>
         <div class="form-group">
           <label for="j">j (s ≤ j ≤ k)</label>
-          <input type="number" id="j" name="j" min="4" max="7" required value="{{ request.form.get('j', '') }}">
+          <input type="number" id="j" name="j" min="3" max="7" required value="{{ request.form.get('j', '') }}">
         </div>
         <div class="form-group">
           <label for="s">s (3 ≤ s ≤ 7)</label>
@@ -197,7 +193,6 @@
         </div>
       </div>
 
-      <!-- 新增：At least ? s samples -->
       <div class="at-least-group">
         <label for="at_least_s"><strong>At least</strong></label>
         <input type="number" id="at_least_s" name="at_least_s" min="1" required value="{{ request.form.get('at_least_s', '') }}" />
@@ -205,36 +200,30 @@
       </div>
       <div id="at-least-error" style="color: red; font-size: 12px; display: none;"></div>
 
-      <!-- 单选 -->
       <div class="radio-group">
         <label><input type="radio" name="n_mode" value="random" {% if request.form.get('n_mode') != 'input' %}checked{% endif %}> Random n</label>
         <label style="margin-left: 20px;"><input type="radio" name="n_mode" value="input" {% if request.form.get('n_mode') == 'input' %}checked{% endif %}> Input n</label>
       </div>
 
-      <!-- Input n 区域 -->
       <div class="user-inputs" id="user-input-n" style="display: none;">
         <label><strong>User input n :</strong></label>
         <div class="user-inputs-grid" id="input-grid"></div>
       </div>
 
-      <!-- 值输入 -->
       <div class="textarea-group">
         <label><strong>Value Input</strong></label>
         <textarea name="value_input" rows="4">{% if value_input and request.method == 'POST' %}{{ value_input }}{% endif %}</textarea>          
       </div>
 
-      <!-- 按钮区 -->
       <div class="button-group">
         <button type="submit" name="action" value="execute">Execute</button>
         <button type="submit" name="action" value="store">Store</button>
         <button type="button" onclick="window.location.href='/results'">DB</button>
       </div>
 
-      <!-- 输出结果区 -->
       <div class="result-group">
         <label><strong>Results</strong></label>
 
-        <!-- 新增进度条和计时器 -->
         <div class="progress-container">
           <div class="progress-bar-bg">
             <div id="progress-bar" class="progress-bar-fill"></div>
@@ -253,11 +242,9 @@
         <button type="button" onclick="window.print()">Print</button>
         <button type="submit" name="action" value="next">NEXT</button>
       </div>
-
     </form>
   </div>
 
-<!-- 各种JS逻辑 -->
 <script>
 const mInput = document.getElementById('m');
 const nInput = document.getElementById('n');
@@ -279,27 +266,26 @@ function calculateCombination(j, s) {
   return numerator / denominator;
 }
 
-function renderInputBoxes() {
-  const m = parseInt(mInput.value);
-  const n = parseInt(nInput.value);
+// 检查 at_least 输入是否合理
+function validateAtLeastInput() {
+  const sVal = parseInt(sInput.value);
+  const jVal = parseInt(jInput.value);
+  const atLeastVal = parseInt(atLeastInput.value);
 
-  if (isNaN(m) || m < 45 || m > 54 || isNaN(n) || n < 7 || n > 25) {
-    alert("Please enter valid m (45~54) and n (7~25)");
-    inputRadio.checked = false;
-    inputNSection.style.display = 'none';
-    inputGrid.innerHTML = '';
+  if (isNaN(sVal) || isNaN(jVal) || isNaN(atLeastVal)) {
+    errorContainer.style.display = 'none';
+    errorContainer.textContent = '';
     return;
   }
 
-  inputGrid.innerHTML = '';
-  for (let i = 1; i <= n; i++) {
-    inputGrid.innerHTML += `
-      <div class="user-input-box">
-        <input type="number" name="input_n_${i}" min="1" max="${m}" required />
-        <div>${i}</div>
-      </div>`;
+  const combo = calculateCombination(jVal, sVal);
+  if (atLeastVal > combo) {
+    errorContainer.style.display = 'block';
+    errorContainer.textContent = `Error: "At least" cannot exceed C(${jVal}, ${sVal}) = ${combo}`;
+  } else {
+    errorContainer.style.display = 'none';
+    errorContainer.textContent = '';
   }
-  inputNSection.style.display = 'block';
 }
 
 document.querySelectorAll('input[name="n_mode"]').forEach(radio => {
@@ -313,49 +299,89 @@ document.querySelectorAll('input[name="n_mode"]').forEach(radio => {
   });
 });
 
+function renderInputBoxes() {
+  const mVal = mInput.value.trim();
+  const nVal = nInput.value.trim();
+
+  if (mVal === "" || nVal === "") return;
+
+  const m = parseInt(mVal);
+  const n = parseInt(nVal);
+
+  if (isNaN(m) || isNaN(n) || m < 45 || m > 54 || n < 7 || n > 25) return;
+
+  if (inputRadio.checked) {
+    inputGrid.innerHTML = '';
+    for (let i = 1; i <= n; i++) {
+      inputGrid.innerHTML += `<div class="user-input-box"><input type="number" name="input_n_${i}" min="1" max="${m}" required /><div>${i}</div></div>`;
+    }
+    inputNSection.style.display = 'block';
+  } else {
+    inputNSection.style.display = 'none';
+    inputGrid.innerHTML = '';
+  }
+}
+
 mInput.addEventListener('input', renderInputBoxes);
 nInput.addEventListener('input', renderInputBoxes);
-
-atLeastInput.addEventListener('input', () => {
-  const sVal = parseInt(sInput.value);
-  const jVal = parseInt(jInput.value);
-  if (!isNaN(sVal) && !isNaN(jVal)) {
-    const combo = calculateCombination(jVal, sVal);
-    if (parseInt(atLeastInput.value) > combo) {
-      errorContainer.style.display = 'block';
-      errorContainer.textContent = `Error: at least s cannot exceed C(${jVal}, ${sVal}) = ${combo}`;
-    }
-  }
-});
+atLeastInput.addEventListener('input', validateAtLeastInput);
+sInput.addEventListener('input', validateAtLeastInput);
+jInput.addEventListener('input', validateAtLeastInput);
 
 window.onload = function () {
   if (inputRadio.checked) renderInputBoxes();
 };
 
-//  新增：控制进度条和计时器
 let startTime = null;
 let intervalId = null;
-let maxTime = 10; // 默认10秒
+let maxTime = 10;
 
 function startProgress() {
   startTime = Date.now();
   clearInterval(intervalId);
-  
   intervalId = setInterval(() => {
     const elapsedMs = Date.now() - startTime;
-    const elapsedSec = (elapsedMs / 1000).toFixed(6);  //  保留6位小数
+    const elapsedSec = (elapsedMs / 1000).toFixed(6);
     document.getElementById('timer').textContent = `${elapsedSec}s`;
 
     const percent = Math.min((elapsedMs / 1000) / maxTime * 100, 100);
     document.getElementById('progress-bar').style.width = percent + '%';
-}, 50);
-
+  }, 50);
 }
 
-// 点击 Execute 开始计时
-document.querySelector('button[name="action"][value="execute"]').addEventListener('click', () => {
+document.querySelector('button[name="action"][value="execute"]').addEventListener('click', (event) => {
+  event.preventDefault(); // 阻止默认提交
+
+  const form = document.querySelector('form');
+
+  // 先让浏览器检查 min/max/required
+  if (!form.reportValidity()) {
+    return;
+  }
+
+  // 再自己检查 j >= s
+  const jVal = parseInt(document.getElementById('j').value);
+  const sVal = parseInt(document.getElementById('s').value);
+
+  if (jVal < sVal) {
+    alert(`Invalid input: j (${jVal}) must be greater than or equal to s (${sVal}).`);
+    return;
+  }
+
+  // 再检查 at_least错误提示是否在
+  const atLeastError = document.getElementById('at-least-error');
+  if (atLeastError.style.display !== 'none') {
+    alert('Invalid input: "At least" value is incorrect.');
+    return;
+  }
+
+  //  所有检查通过了，正常开始进度条并提交表单
   startProgress();
+  setTimeout(() => {
+    form.submit();
+  }, 100);
 });
+
 
 </script>
 </body>
